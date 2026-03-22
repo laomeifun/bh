@@ -77,9 +77,9 @@ void fragment() {
 	color = color / (1.0 + color);
 	color = pow(color, vec3(1.0 / 1.5));
 
-	// Color grading
+	// Color grading — warm golden/amber tones (Interstellar style)
 	color = mix(color, color * color * (3.0 - 2.0 * color), vec3(1.0));
-	color = pow(color, vec3(1.3, 1.20, 1.0));
+	color = pow(color, vec3(1.0, 1.15, 1.6));  // Suppress blue, preserve red → warm amber
 	color = clamp(color * 1.01, vec3(0.0), vec3(1.0));
 
 	// Gamma

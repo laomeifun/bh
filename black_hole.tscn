@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://cBlackHoleScene"]
 
 [ext_resource type="Shader" path="res://black_hole.gdshader" id="1_shader"]
-[ext_resource type="Script" path="res://black_hole.gd" id="2_script"]
+[ext_resource type="Script" path="res://BlackHole.cs" id="2_script"]
 [ext_resource type="Shader" path="res://bloom_composite.gdshader" id="3_bloom"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]

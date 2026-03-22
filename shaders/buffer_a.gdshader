@@ -12,7 +12,7 @@ uniform vec2 mouse_pos = vec2(0.35, 0.5);
 uniform bool mouse_pressed = false;
 uniform sampler2D noise_tex : filter_linear, repeat_enable;
 uniform sampler2D disc_tex : filter_linear, repeat_enable;
-uniform sampler2D prev_frame : filter_linear, repeat_disable;  // Ping-pong temporal AA
+
 
 const int ITERATIONS = 200;
 const vec3 MainColor = vec3(1.0);
@@ -131,13 +131,7 @@ void fragment() {
 	vec2 uv = FRAGCOORD.xy / resolution;
 	float aspect = resolution.x / resolution.y;
 
-	// Temporal AA: jitter UV slightly each frame (disabled when mouse pressed)
-	vec2 uveye = uv;
-	float jitter = mouse_pressed ? 0.0 : 1.0;
-	uveye.x += (rand(uv + sin(TIME)) / resolution.x) * jitter;
-	uveye.y += (rand(uv + 1.0 + sin(TIME)) / resolution.y) * jitter;
-
-	vec3 eyevec = normalize(vec3((uveye * 2.0 - 1.0) * vec2(aspect, 1.0), 6.0));
+	vec3 eyevec = normalize(vec3((uv * 2.0 - 1.0) * vec2(aspect, 1.0), 6.0));
 	vec3 eyepos = vec3(0.0, 0.0, -10.0);
 
 	vec2 mp = mouse_pos;
@@ -149,7 +143,7 @@ void fragment() {
 	eyepos = rot(eyepos, ang.x, ang.y, ang.z);
 
 	vec3 color = vec3(0.0);
-	float dither = rand(uv + sin(TIME) * jitter) * 2.0;
+	float dither = rand(uv) * 2.0;
 	float alpha = 0.0;
 	float step_size = 15.0 / float(ITERATIONS);
 
@@ -164,11 +158,5 @@ void fragment() {
 	}
 
 	color *= 0.0001;
-
-	// Temporal AA: blend 90% previous + 10% current (faithful to original)
-	vec3 previous = texture(prev_frame, uv).rgb;
-	float blendWeight = 0.9 * jitter;
-	color = mix(color, previous, blendWeight);
-
-	COLOR = vec4(saturate_v(color), 1.0);
+	COLOR = vec4(color, 1.0);
 }

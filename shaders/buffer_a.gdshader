@@ -12,6 +12,7 @@ uniform vec2 mouse_pos = vec2(0.35, 0.5);
 uniform bool mouse_pressed = false;
 uniform sampler2D noise_tex : filter_linear, repeat_enable;
 uniform sampler2D disc_tex : filter_linear, repeat_enable;
+uniform sampler2D prev_frame : filter_linear, repeat_disable;  // Ping-pong temporal AA
 
 const int ITERATIONS = 200;
 const vec3 MainColor = vec3(1.0);
@@ -66,7 +67,7 @@ void Haze(inout vec3 color, vec3 pos, float alpha) {
 void GasDisc(inout vec3 color, inout float alpha, vec3 pos) {
 	float discInner = 3.2 - 5.3 * 0.5;
 	float distC = distance(pos, vec3(0.0));
-	float distD = pos.y;  // dot(vec3(0,1,0), pos)
+	float distD = pos.y;
 
 	float rg = 1.0 - saturate_f((distC - discInner) / 5.3 * 0.5);
 	float cov = pcurve(rg, 4.0, 0.9);
@@ -130,7 +131,13 @@ void fragment() {
 	vec2 uv = FRAGCOORD.xy / resolution;
 	float aspect = resolution.x / resolution.y;
 
-	vec3 eyevec = normalize(vec3((uv * 2.0 - 1.0) * vec2(aspect, 1.0), 6.0));
+	// Temporal AA: jitter UV slightly each frame (disabled when mouse pressed)
+	vec2 uveye = uv;
+	float jitter = mouse_pressed ? 0.0 : 1.0;
+	uveye.x += (rand(uv + sin(TIME)) / resolution.x) * jitter;
+	uveye.y += (rand(uv + 1.0 + sin(TIME)) / resolution.y) * jitter;
+
+	vec3 eyevec = normalize(vec3((uveye * 2.0 - 1.0) * vec2(aspect, 1.0), 6.0));
 	vec3 eyepos = vec3(0.0, 0.0, -10.0);
 
 	vec2 mp = mouse_pos;
@@ -142,22 +149,26 @@ void fragment() {
 	eyepos = rot(eyepos, ang.x, ang.y, ang.z);
 
 	vec3 color = vec3(0.0);
-	float dither = rand(uv) * 2.0;
+	float dither = rand(uv + sin(TIME) * jitter) * 2.0;
 	float alpha = 0.0;
 	float step_size = 15.0 / float(ITERATIONS);
 
 	vec3 raypos = eyepos + eyevec * dither * step_size;
 	for (int i = 0; i < ITERATIONS; i++) {
-		// Warp space (gravitational lensing)
 		float sd = distance(raypos, vec3(0.0));
 		float wf = 1.0 / (sd * sd + 0.000001);
 		eyevec = normalize(eyevec + normalize(vec3(0.0) - raypos) * wf * 5.0 / float(ITERATIONS));
-
 		raypos += eyevec * step_size;
 		GasDisc(color, alpha, raypos);
 		Haze(color, raypos, alpha);
 	}
 
 	color *= 0.0001;
+
+	// Temporal AA: blend 90% previous + 10% current (faithful to original)
+	vec3 previous = texture(prev_frame, uv).rgb;
+	float blendWeight = 0.9 * jitter;
+	color = mix(color, previous, blendWeight);
+
 	COLOR = vec4(saturate_v(color), 1.0);
 }

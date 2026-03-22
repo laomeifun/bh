@@ -15,7 +15,7 @@ uniform sampler2D disc_tex : filter_linear, repeat_enable;
 
 const int ITERATIONS = 200;
 const vec3 MainColor = vec3(1.0);
-const float PI = 3.14159265;
+// PI is a built-in constant in Godot shaders
 
 // Noise via texture lookup (faithful to original iChannel0 usage)
 float noise(vec3 x) {
